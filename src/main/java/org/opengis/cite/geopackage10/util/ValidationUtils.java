@@ -31,7 +31,7 @@ public class ValidationUtils {
 
     private static XMLCatalogResolver initCatalogResolver() {
         URL catalogURL = ValidationUtils.class
-                .getResource("/org/opengis/cite/alpha/schematron-catalog.xml");
+                .getResource("/org/opengis/cite/geopackage10/schematron-catalog.xml");
         XMLCatalogResolver resolver = new XMLCatalogResolver();
         resolver.setCatalogList(new String[] { catalogURL.toString() });
         return resolver;
