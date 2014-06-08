@@ -3,18 +3,29 @@ package org.opengis.cite.geopackage10.util;
 import org.opengis.cite.geopackage10.SuiteAttribute;
 import org.sqlite.JDBC;
 import org.sqlite.SQLiteOpenMode;
+import org.testng.Assert;
 import org.testng.ITestContext;
 import org.testng.annotations.*;
 
 import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
-/**
- * Includes various tests of capability 1.
- */
 public class GeoPackageTests {
+    public static List<ColumnInfo> getTableSpecification(String tableName) {
+        // TODO add actual table specs
+        return new ArrayList<>();
+    }
+
+    public static void checkTableSchema(List<ColumnInfo> actualTableInfo, List<ColumnInfo> expectedTableInfo) {
+        // TODO make comparison more intelligent
+        // TODO provide proper error messages
+        Assert.assertEquals(actualTableInfo, expectedTableInfo);
+    }
+
     private File testSubject;
     private Connection connection;
 
