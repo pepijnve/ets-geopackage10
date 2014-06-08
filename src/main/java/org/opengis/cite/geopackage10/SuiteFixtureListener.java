@@ -1,23 +1,16 @@
 package org.opengis.cite.geopackage10;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.Map;
-import java.util.Properties;
-import java.util.logging.Level;
-import org.opengis.cite.geopackage10.util.XMLUtils;
 import org.opengis.cite.geopackage10.util.TestSuiteLogger;
 import org.opengis.cite.geopackage10.util.URIUtils;
-import org.sqlite.JDBC;
-import org.sqlite.SQLiteConfig;
-import org.sqlite.SQLiteOpenMode;
 import org.testng.ISuite;
 import org.testng.ISuiteListener;
 import org.testng.Reporter;
-import org.w3c.dom.Document;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * A listener that performs various tasks before and after a test suite is run,
