@@ -3,11 +3,17 @@ package org.opengis.cite.geopackage10;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.Map;
+import java.util.Properties;
 import java.util.logging.Level;
 import org.opengis.cite.geopackage10.util.XMLUtils;
 import org.opengis.cite.geopackage10.util.TestSuiteLogger;
 import org.opengis.cite.geopackage10.util.URIUtils;
+import org.sqlite.JDBC;
+import org.sqlite.SQLiteConfig;
+import org.sqlite.SQLiteOpenMode;
 import org.testng.ISuite;
 import org.testng.ISuiteListener;
 import org.testng.Reporter;
@@ -60,27 +66,17 @@ public class SuiteFixtureListener implements ISuiteListener {
                             + TestRunArg.IUT.toString());
         }
         URI iutRef = URI.create(iutParam.trim());
-        File entityFile = null;
+
+        File entityFile;
         try {
             entityFile = URIUtils.dereferenceURI(iutRef);
         } catch (IOException iox) {
-            throw new RuntimeException("Failed to dereference resource located at "
-                    + iutRef, iox);
+            throw new RuntimeException("Failed to dereference resource located at " + iutRef, iox);
         }
-        Document iutDoc = null;
-        try {
-            iutDoc = URIUtils.parseURI(entityFile.toURI());
-        } catch (Exception x) {
-            throw new RuntimeException("Failed to parse resource retrieved from "
-                    + iutRef, x);
-        }
-        suite.setAttribute(SuiteAttribute.TEST_SUBJECT.getName(), iutDoc);
+
+        suite.setAttribute(SuiteAttribute.TEST_SUBJECT.getName(), entityFile);
         if (TestSuiteLogger.isLoggable(Level.FINE)) {
-            StringBuilder logMsg = new StringBuilder(
-                    "Parsed resource retrieved from ");
-            logMsg.append(iutRef).append("\n");
-            logMsg.append(XMLUtils.writeNodeToString(iutDoc));
-            TestSuiteLogger.log(Level.FINE, logMsg.toString());
+            TestSuiteLogger.log(Level.FINE, String.format("Testing geopackage from %s%n", iutRef));
         }
     }
 }

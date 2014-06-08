@@ -1,27 +1,38 @@
 package org.opengis.cite.geopackage10;
 
-import org.w3c.dom.Document;
+import org.testng.ITestContext;
+
+import java.io.File;
 
 /**
  * An enumerated type defining ISuite attributes that may be set to constitute a
  * shared test fixture.
  */
-@SuppressWarnings("rawtypes")
-public enum SuiteAttribute {
+public class SuiteAttribute<T> {
 
     /**
-     * A DOM Document representation of the test subject or metadata about it.
+     * A File object referencing a GeoPackage database.
      */
-    TEST_SUBJECT("testSubject", Document.class);
-    private final Class attrType;
+    public static final SuiteAttribute<File> TEST_SUBJECT = new SuiteAttribute<>("testSubject", File.class);
+
+    private final Class<T> attrType;
     private final String attrName;
 
-    private SuiteAttribute(String attrName, Class attrType) {
+    private SuiteAttribute(String attrName, Class<T> attrType) {
         this.attrName = attrName;
         this.attrType = attrType;
     }
 
-    public Class getType() {
+    public T getValue(ITestContext context) {
+        Object value = context.getSuite().getAttribute(attrName);
+        if (attrType.isInstance(value)) {
+            return attrType.cast(value);
+        } else {
+            throw new IllegalArgumentException();
+        }
+    }
+
+    public Class<T> getType() {
         return attrType;
     }
 
