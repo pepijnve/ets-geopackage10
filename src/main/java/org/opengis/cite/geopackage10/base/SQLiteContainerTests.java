@@ -4,21 +4,25 @@ import org.opengis.cite.geopackage10.options.FeaturesTests;
 import org.opengis.cite.geopackage10.options.TilesTests;
 import org.opengis.cite.geopackage10.util.ColumnInfo;
 import org.opengis.cite.geopackage10.util.GeoPackageTests;
+import org.opengis.cite.geopackage10.util.SQLUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
 import static org.opengis.cite.geopackage10.util.SQLUtils.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 /**
  * Includes various tests of Core.
  */
-public class CoreTests extends GeoPackageTests {
+public class SQLiteContainerTests extends GeoPackageTests {
     /**
      * Verify that the Geopackage is an SQLite version_3 database
      * <p/>
@@ -31,7 +35,7 @@ public class CoreTests extends GeoPackageTests {
             byte[] header = new byte[16];
             raf.readFully(header);
 
-            Assert.assertEquals(new String(header, "US-ASCII"), "SQLite format 3\0");
+            assertEquals(new String(header, "US-ASCII"), "SQLite format 3\0");
         } finally {
             raf.close();
         }
@@ -98,9 +102,41 @@ public class CoreTests extends GeoPackageTests {
         TilesTests.testTilesRow(c);
 
         // Step 5, 6, 7
-        Assert.assertEquals(
+        assertEquals(
                 0,
                 queryInt(c, "SELECT count(*) FROM gpkg_extensions WHERE extension_name not like = 'gpkg_%'")
         );
+    }
+
+    /**
+     * Verify that the geopackage passes the SQLite integrity check.
+     */
+    @Test(description = "/base/core/container/data/file_integrity")
+    public void testFileIntegrity() throws SQLException {
+        assertEquals("ok", queryString(getDatabase(), "PRAGMA integrity_check"));
+    }
+
+    /**
+     * Verify that the geopackage passes the SQLite foreign_key_check.
+     */
+    @Test(description = "/base/core/container/data/foreign_key_integrity")
+    public void testForeignKeyIntegrity() throws SQLException {
+        String error = query(getDatabase(), "PRAGMA foreign_key_check", new Object[0], new ResultSetHandler<String>() {
+            @Override
+            public String handleResult(ResultSet rs) throws SQLException {
+                StringBuilder b = new StringBuilder();
+                while (rs.next()) {
+                    String tableName = rs.getString(1);
+                    long rowId = rs.getLong(2);
+                    String otherTableName = rs.getString(3);
+
+                    b.append(tableName + " row " + rowId + " contains invalid reference to " + otherTableName);
+                }
+
+                return b.length() == 0 ? null : b.toString();
+            }
+        });
+
+        assertTrue(error == null, error);
     }
 }

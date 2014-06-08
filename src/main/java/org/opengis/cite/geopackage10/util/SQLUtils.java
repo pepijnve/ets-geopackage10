@@ -8,59 +8,48 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SQLUtils {
-    public static int queryInt(Connection c, String query) throws SQLException {
-        return queryInt(c, query, null);
-    }
-
-    public static int queryInt(Connection c, String query, Object[] args) throws SQLException {
-        PreparedStatement s = prepare(c, query, args);
-
-        try {
-            ResultSet rs = s.executeQuery();
-            try {
+    public static int queryInt(Connection c, String query, Object... args) throws SQLException {
+        return query(c, query, args, new ResultSetHandler<Number>() {
+            @Override
+            public Number handleResult(ResultSet rs) throws SQLException {
                 if (rs.next()) {
                     return rs.getInt(1);
                 } else {
                     throw new SQLException("");
                 }
-            } finally {
-                rs.close();
             }
-        } finally {
-            s.close();
-        }
+        }).intValue();
     }
 
-    public static List<String> queryStrings(Connection c, String query) throws SQLException {
-        return queryStrings(c, query, null);
+    public static String queryString(Connection c, String query, Object... args) throws SQLException {
+        return query(c, query, args, new ResultSetHandler<String>() {
+            @Override
+            public String handleResult(ResultSet rs) throws SQLException {
+                if (rs.next()) {
+                    return rs.getString(1);
+                } else {
+                    throw new SQLException("");
+                }
+            }
+        });
     }
 
-    public static List<String> queryStrings(Connection c, String query, Object[] args) throws SQLException {
-        PreparedStatement s = prepare(c, query, args);
-
-        try {
-            ResultSet rs = s.executeQuery();
-            try {
+    public static List<String> queryStrings(Connection c, String query, Object... args) throws SQLException {
+        return query(c, query, args, new ResultSetHandler<List<String>>() {
+            @Override
+            public List<String> handleResult(ResultSet rs) throws SQLException {
                 List<String> res = new ArrayList<>();
                 while (rs.next()) {
                     res.add(rs.getString(1));
                 }
                 return res;
-            } finally {
-                rs.close();
             }
-        } finally {
-            s.close();
-        }
+        });
     }
 
-    private static PreparedStatement prepare(Connection c, String query, Object[] args) throws SQLException {
+    public static <T> T query(Connection c, String query, Object[] args, ResultSetHandler<T> rsHandler) throws SQLException {
         PreparedStatement s = c.prepareStatement(query);
-        bindArguments(s, args);
-        return s;
-    }
 
-    private static void bindArguments(PreparedStatement s, Object[] args) throws SQLException {
         if (args != null) {
             for (int i = 0; i < args.length; i++) {
                 int paramIx = i + 1;
@@ -78,6 +67,22 @@ public class SQLUtils {
                 }
             }
         }
+
+        try {
+            boolean hasResult = s.execute();
+            if (hasResult) {
+                ResultSet rs = s.getResultSet();
+                try {
+                    return rsHandler.handleResult(rs);
+                } finally {
+                    rs.close();
+                }
+            } else {
+                return null;
+            }
+        } finally {
+            s.close();
+        }
     }
 
     public static boolean tableExists(Connection c, String table) throws SQLException {
@@ -85,7 +90,25 @@ public class SQLUtils {
     }
 
     public static List<ColumnInfo> getTableInfo(Connection c, String table) throws SQLException {
-        PreparedStatement s = prepare(c, "PRAGMA table_info('" + table + "')", null);
+        PreparedStatement s1 = c.prepareStatement("PRAGMA table_info('" + table + "')");
+        if (null != null) {
+            for (int i = 0; i < ((Object[]) null).length; i++) {
+                int paramIx = i + 1;
+                Object arg = ((Object[]) null)[i];
+                if (arg instanceof String) {
+                    s1.setString(paramIx, ((String) arg));
+                } else if (arg instanceof Long || arg instanceof Integer) {
+                    s1.setLong(paramIx, ((Number) arg).longValue());
+                } else if (arg instanceof Float || arg instanceof Double) {
+                    s1.setDouble(paramIx, ((Number) arg).doubleValue());
+                } else if (arg instanceof byte[]) {
+                    s1.setBytes(paramIx, ((byte[]) arg));
+                } else {
+                    throw new IllegalArgumentException("Unsupported argument type: " + arg);
+                }
+            }
+        }
+        PreparedStatement s = s1;
         try {
             ResultSet rs = s.executeQuery();
             try {
@@ -108,5 +131,9 @@ public class SQLUtils {
         } finally {
             s.close();
         }
+    }
+
+    public static interface ResultSetHandler<T> {
+        T handleResult(ResultSet rs) throws SQLException;
     }
 }
