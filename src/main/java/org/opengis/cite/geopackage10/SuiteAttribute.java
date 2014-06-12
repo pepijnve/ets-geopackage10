@@ -13,7 +13,7 @@ public class SuiteAttribute<T> {
     /**
      * A File object referencing a GeoPackage database.
      */
-    public static final SuiteAttribute<File> TEST_SUBJECT = new SuiteAttribute<>("testSubject", File.class);
+    public static final SuiteAttribute<File> TEST_SUBJECT = new SuiteAttribute<File>("testSubject", File.class);
 
     private final Class<T> attrType;
     private final String attrName;

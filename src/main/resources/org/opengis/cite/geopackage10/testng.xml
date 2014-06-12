@@ -1,27 +1,88 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
 <suite name="${ets-code}-${version}" verbose="0" configfailurepolicy="skip">
-  <parameter name="iut"  value=""/>
-  <parameter name="ics"  value=""/>
+    <parameter name="iut" value=""/>
+    <parameter name="ics" value=""/>
 
-  <listeners>
-    <listener class-name="org.opengis.cite.geopackage10.TestRunListener" />
-    <listener class-name="org.opengis.cite.geopackage10.SuiteFixtureListener" />
-  </listeners>
+    <listeners>
+        <listener class-name="org.opengis.cite.geopackage10.TestRunListener"/>
+        <listener class-name="org.opengis.cite.geopackage10.SuiteFixtureListener"/>
+    </listeners>
 
-  <test name="Base">
-    <packages>
-      <package name="org.opengis.cite.geopackage10.base" />
-    </packages>
-  </test>
-  <test name="Options">
-    <packages>
-      <package name="org.opengis.cite.geopackage10.options" />
-    </packages>
-  </test>
-  <test name="Extensions">
-    <packages>
-      <package name="org.opengis.cite.geopackage10.extensions" />
-    </packages>
-  </test>
+    <test name="Core">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.base.core"/>
+        </packages>
+    </test>
+    <test name="Features">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.options.features"/>
+        </packages>
+    </test>
+
+    <test name="Tiles">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.options.tiles"/>
+        </packages>
+    </test>
+
+    <test name="Metadata">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.options.metadata"/>
+        </packages>
+    </test>
+
+    <test name="Schema">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.options.schema"/>
+        </packages>
+    </test>
+
+    <test name="Extension Mechanism">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.options.extensionmechanism"/>
+        </packages>
+    </test>
+
+    <test name="Extended Geometry Types">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.extensions.extendedgeom"/>
+        </packages>
+    </test>
+
+    <test name="User Defined Geometry Types">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.extensions.usergeom"/>
+        </packages>
+    </test>
+
+    <test name="RTree Spatial Index">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.extensions.spatialindex"/>
+        </packages>
+    </test>
+
+    <test name="Geometry Type Triggers">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.extensions.geomtypetriggers"/>
+        </packages>
+    </test>
+
+    <test name="SRS ID Triggers">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.extensions.srstriggers"/>
+        </packages>
+    </test>
+
+    <test name="Zoom Other Intervals">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.extensions.zoomother"/>
+        </packages>
+    </test>
+
+    <test name="WebP Tiles">
+        <packages>
+            <package name="org.opengis.cite.geopackage10.extensions.webptiles"/>
+        </packages>
+    </test>
 </suite>

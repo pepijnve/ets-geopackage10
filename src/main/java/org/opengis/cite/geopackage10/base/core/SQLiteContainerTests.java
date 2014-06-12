@@ -1,20 +1,22 @@
-package org.opengis.cite.geopackage10.base;
+package org.opengis.cite.geopackage10.base.core;
 
-import org.opengis.cite.geopackage10.options.FeaturesTests;
-import org.opengis.cite.geopackage10.options.TilesTests;
+import org.opengis.cite.geopackage10.options.features.FeaturesTests;
+import org.opengis.cite.geopackage10.options.tiles.TilesTests;
 import org.opengis.cite.geopackage10.util.ColumnInfo;
 import org.opengis.cite.geopackage10.util.GeoPackageTests;
-import org.opengis.cite.geopackage10.util.SQLUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
 
+import static org.opengis.cite.geopackage10.util.PatternUtils.compileAll;
+import static org.opengis.cite.geopackage10.util.PatternUtils.matchesAny;
 import static org.opengis.cite.geopackage10.util.SQLUtils.*;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
@@ -62,9 +64,8 @@ public class SQLiteContainerTests extends GeoPackageTests {
      */
     @Test(description = "/base/core/container/data/file_extension_name")
     public void testFileExtensionName() throws IOException, SQLException {
-        Connection c = getDatabase();
-
         // TODO ATS test should take extended geopackage into account
+//        Connection c = getDatabase();
 //        boolean isExtended = tableExists(c, "gpkg_extensions") &&
 //                queryInt(c, "SELECT count(*) FROM gpkg_extensions WHERE extension_name not like 'gpkg_%'") > 0;
         boolean isExtended = false;
@@ -87,9 +88,7 @@ public class SQLiteContainerTests extends GeoPackageTests {
         List<String> gpkgTables = queryStrings(c, "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'gpkg_%'");
         for (int i = 0; i < gpkgTables.size(); i++) {
             String tableName = gpkgTables.get(i);
-            List<ColumnInfo> actualTableInfo = getTableInfo(c, tableName);
-            List<ColumnInfo> expectedTableInfo = getTableSpecification(tableName);
-            checkTableSchema(actualTableInfo, expectedTableInfo);
+            checkTableSchema(tableName, getTableInfo(c, tableName));
         }
 
         // Step 2
@@ -102,10 +101,42 @@ public class SQLiteContainerTests extends GeoPackageTests {
         TilesTests.testTilesRow(c);
 
         // Step 5, 6, 7
-        assertEquals(
-                0,
-                queryInt(c, "SELECT count(*) FROM gpkg_extensions WHERE extension_name not like = 'gpkg_%'")
+        if (tableExists(c, "gpkg_extensions")) {
+            assertEquals(
+                    0,
+                    queryInt(c, "SELECT count(*) FROM gpkg_extensions WHERE extension_name not like 'gpkg_%'")
+            );
+        }
+    }
+
+    /**
+     * Verify that all tables listed in gpkg_contents use the restricted set of data types.
+     */
+    @Test(description = "/base/core/container/data/table_data_types")
+    public void testTableDataTypes() throws SQLException {
+        Connection c = getDatabase();
+        List<Pattern> allowedTypes = compileAll(
+                Pattern.CASE_INSENSITIVE,
+                "boolean", "tinyint", "smallint", "mediumint", "int", "integer", "float", "double", "real", "date", "datetime",
+                "text(?:\\(\\d+\\))?", "blob(?:\\(\\d+\\))?",
+                "geometry", "point", "linestring", "polygon", "multipoint", "multilinestring", "multipolygon", "geometrycollection"
         );
+
+        StringBuilder msgBuilder = new StringBuilder();
+
+        List<String> featureTables = queryStrings(c, "SELECT table_name FROM gpkg_contents WHERE data_type = 'features'");
+        for (int i = 0; i < featureTables.size(); i++) {
+            String featureTable = featureTables.get(i);
+            Set<ColumnInfo> tableInfo = getTableInfo(c, featureTable).columns;
+            for (ColumnInfo columnInfo : tableInfo) {
+                if (!matchesAny(columnInfo.type, allowedTypes)) {
+                    msgBuilder.append(featureTable + "." + columnInfo.name + " uses invalid type " + columnInfo.type );
+                }
+            }
+        }
+
+        String msg = msgBuilder.toString();
+        assertTrue(msg.length() == 0, msg);
     }
 
     /**
@@ -121,22 +152,8 @@ public class SQLiteContainerTests extends GeoPackageTests {
      */
     @Test(description = "/base/core/container/data/foreign_key_integrity")
     public void testForeignKeyIntegrity() throws SQLException {
-        String error = query(getDatabase(), "PRAGMA foreign_key_check", new Object[0], new ResultSetHandler<String>() {
-            @Override
-            public String handleResult(ResultSet rs) throws SQLException {
-                StringBuilder b = new StringBuilder();
-                while (rs.next()) {
-                    String tableName = rs.getString(1);
-                    long rowId = rs.getLong(2);
-                    String otherTableName = rs.getString(3);
-
-                    b.append(tableName + " row " + rowId + " contains invalid reference to " + otherTableName);
-                }
-
-                return b.length() == 0 ? null : b.toString();
-            }
-        });
-
+        String error = foreignKeyCheck(getDatabase());
         assertTrue(error == null, error);
     }
+
 }

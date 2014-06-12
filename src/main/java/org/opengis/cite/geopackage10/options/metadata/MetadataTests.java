@@ -1,4 +1,4 @@
-package org.opengis.cite.geopackage10.options;
+package org.opengis.cite.geopackage10.options.metadata;
 
 import org.opengis.cite.geopackage10.util.GeoPackageTests;
 

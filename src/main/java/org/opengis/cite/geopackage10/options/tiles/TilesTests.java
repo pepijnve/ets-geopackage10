@@ -1,4 +1,4 @@
-package org.opengis.cite.geopackage10.options;
+package org.opengis.cite.geopackage10.options.tiles;
 
 import org.opengis.cite.geopackage10.util.GeoPackageTests;
 import org.testng.annotations.Test;

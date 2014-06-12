@@ -4,8 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class SQLUtils {
     public static int queryInt(Connection c, String query, Object... args) throws SQLException {
@@ -86,33 +85,58 @@ public class SQLUtils {
     }
 
     public static boolean tableExists(Connection c, String table) throws SQLException {
-        return queryInt(c, "SELECT count(*) FROM sqlite_master WHERE type = 'table' and name = ?", new Object[]{table}) != 0;
+        return queryInt(c, "SELECT count(*) FROM sqlite_master WHERE type = 'table' and name = ?", table) != 0;
     }
 
-    public static List<ColumnInfo> getTableInfo(Connection c, String table) throws SQLException {
-        PreparedStatement s1 = c.prepareStatement("PRAGMA table_info('" + table + "')");
-        if (null != null) {
-            for (int i = 0; i < ((Object[]) null).length; i++) {
-                int paramIx = i + 1;
-                Object arg = ((Object[]) null)[i];
-                if (arg instanceof String) {
-                    s1.setString(paramIx, ((String) arg));
-                } else if (arg instanceof Long || arg instanceof Integer) {
-                    s1.setLong(paramIx, ((Number) arg).longValue());
-                } else if (arg instanceof Float || arg instanceof Double) {
-                    s1.setDouble(paramIx, ((Number) arg).doubleValue());
-                } else if (arg instanceof byte[]) {
-                    s1.setBytes(paramIx, ((byte[]) arg));
-                } else {
-                    throw new IllegalArgumentException("Unsupported argument type: " + arg);
+    public static TableInfo getTableInfo(Connection c, String table) throws SQLException {
+        Set<ColumnInfo> columns = getColumnInfo(c, table);
+        Set<ForeignKeyInfo> foreignKeys = getForeignKeyInfo(c, table);
+        return new TableInfo(table, columns, foreignKeys);
+    }
+
+    private static Set<ForeignKeyInfo> getForeignKeyInfo(Connection c, String table) throws SQLException {
+        Set<ForeignKeyInfo> result = query(c, "PRAGMA foreign_key_list('" + table + "')", null, new ResultSetHandler<Set<ForeignKeyInfo>>() {
+            @Override
+            public Set<ForeignKeyInfo> handleResult(ResultSet rs) throws SQLException {
+                Map<Integer, String> targets = new LinkedHashMap<>();
+                Map<Integer, List<String>> froms = new HashMap<>();
+                Map<Integer, List<String>> tos = new HashMap<>();
+
+                while (rs.next()) {
+                    int id = rs.getInt(1);
+                    String table = rs.getString(3);
+                    String from = rs.getString(4);
+                    String to = rs.getString(5);
+                    if (!targets.containsKey(id)) {
+                        targets.put(id, table);
+                        froms.put(id, new ArrayList<String>());
+                        tos.put(id, new ArrayList<String>());
+                    }
+                    froms.get(id).add(from);
+                    tos.get(id).add(to);
                 }
+
+                Set<ForeignKeyInfo> res = new LinkedHashSet<>();
+
+                for (Integer id : targets.keySet()) {
+                    res.add(new ForeignKeyInfo(
+                            froms.get(id),
+                            targets.get(id),
+                            tos.get(id)
+                    ));
+                }
+
+                return res;
             }
-        }
-        PreparedStatement s = s1;
-        try {
-            ResultSet rs = s.executeQuery();
-            try {
-                List<ColumnInfo> res = new ArrayList<>();
+        });
+        return result != null ? result : Collections.<ForeignKeyInfo>emptySet();
+    }
+
+    private static Set<ColumnInfo> getColumnInfo(Connection c, String table) throws SQLException {
+        return query(c, "PRAGMA table_info('" + table + "')", null, new ResultSetHandler<Set<ColumnInfo>>() {
+            @Override
+            public Set<ColumnInfo> handleResult(ResultSet rs) throws SQLException {
+                Set<ColumnInfo> res = new LinkedHashSet<>();
                 while (rs.next()) {
                     String defaultValue = rs.getString(5);
 
@@ -125,12 +149,35 @@ public class SQLUtils {
                     ));
                 }
                 return res;
-            } finally {
-                rs.close();
             }
-        } finally {
-            s.close();
+        });
+    }
+
+    public static String foreignKeyCheck(Connection connection) throws SQLException {
+        return foreignKeyCheck(connection, null);
+    }
+
+    public static String foreignKeyCheck(Connection connection, String table) throws SQLException {
+        String query = "PRAGMA foreign_key_check";
+        if (table != null) {
+            query += "(" + table + ")";
         }
+
+        return query(connection, query, new Object[0], new ResultSetHandler<String>() {
+            @Override
+            public String handleResult(ResultSet rs) throws SQLException {
+                StringBuilder b = new StringBuilder();
+                while (rs.next()) {
+                    String tableName = rs.getString(1);
+                    long rowId = rs.getLong(2);
+                    String otherTableName = rs.getString(3);
+
+                    b.append(tableName + " row " + rowId + " contains invalid reference to " + otherTableName);
+                }
+
+                return b.length() == 0 ? null : b.toString();
+            }
+        });
     }
 
     public static interface ResultSetHandler<T> {
