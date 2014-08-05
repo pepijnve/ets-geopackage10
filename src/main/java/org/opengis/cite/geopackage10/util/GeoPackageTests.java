@@ -201,6 +201,10 @@ public class GeoPackageTests {
         Assert.assertEquals(actualTableInfo, spec);
     }
 
+    public static CRS parseCRS(String wkt) {
+        return new CRS();
+    }
+
     private File testSubject;
     private Connection connection;
 

@@ -1,5 +1,7 @@
 package org.opengis.cite.geopackage10.util;
 
+import org.testng.Assert;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,6 +28,23 @@ public class SQLUtils {
             public String handleResult(ResultSet rs) throws SQLException {
                 if (rs.next()) {
                     return rs.getString(1);
+                } else {
+                    throw new SQLException("");
+                }
+            }
+        });
+    }
+
+    public static String[] queryStringArray(Connection c, String query, Object... args) throws SQLException {
+        return query(c, query, args, new ResultSetHandler<String[]>() {
+            @Override
+            public String[] handleResult(ResultSet rs) throws SQLException {
+                if (rs.next()) {
+                    String[] res = new String[rs.getMetaData().getColumnCount()];
+                    for (int i = 0; i < res.length; i++) {
+                        res[i] = rs.getString(i + 1);
+                    }
+                    return res;
                 } else {
                     throw new SQLException("");
                 }
@@ -178,6 +197,10 @@ public class SQLUtils {
                 return b.length() == 0 ? null : b.toString();
             }
         });
+    }
+
+    public static void assertTableExists(Connection c, String tableName) throws SQLException {
+        Assert.assertTrue(tableExists(c, tableName), "Table " + tableName + " does not exist");
     }
 
     public static interface ResultSetHandler<T> {
